@@ -37,7 +37,7 @@ class ReportForm(StatesGroup):
     igor = State()
     yesterday_cash = State()
     confirm = State()
-
+    confirm_cancel = State()
 async def init_db():
     async with aiosqlite.connect(DB_NAME) as db:
         await db.execute("""
@@ -151,9 +151,24 @@ async def edit_last_report(message: Message, state: FSMContext):
 
 @router.message(F.text.in_({"Скасувати", "скасувати", "Отмена", "отмена"}))
 async def cancel_any(message: Message, state: FSMContext):
+    current_state = await state.get_state()
+    if current_state is None or current_state == ReportForm.confirm_cancel:
+        return
+    await state.update_data(_previous_state=current_state)
+    await state.set_state(ReportForm.confirm_cancel)
+    await message.answer("Ви дійсно хочете скасувати звіт?", reply_markup=confirm_kb())
+
+@router.message(ReportForm.confirm_cancel, F.text.in_({"Так", "так", "Да", "да"}))
+async def confirm_cancel_yes(message: Message, state: FSMContext):
     await state.clear()
     await message.answer("Звіт скасовано.", reply_markup=main_kb())
 
+@router.message(ReportForm.confirm_cancel, F.text.in_({"Ні", "ні", "Нет", "нет"}))
+async def confirm_cancel_no(message: Message, state: FSMContext):
+    data = await state.get_data()
+    previous_state = data.get("_previous_state")
+    await state.set_state(previous_state)
+    await message.answer("Добре, продовжуємо заповнення звіту.", reply_markup=cancel_kb())
 @router.message(ReportForm.surname)
 async def process_surname(message: Message, state: FSMContext):
     if message.text in ["Скасувати", "скасувати"]:
