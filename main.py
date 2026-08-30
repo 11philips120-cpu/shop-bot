@@ -239,7 +239,7 @@ async def process_yesterday(message: Message, state: FSMContext):
         
         data = await state.get_data()
         data["date"] = datetime.now().strftime("%d.%m")
-        data["total"] = data["cash"] + data["card"]
+        data["total"] = data["cash"] + data["card"] + data["supplier"] + data["igor"]
         await state.update_data(data)
         
         text = (
