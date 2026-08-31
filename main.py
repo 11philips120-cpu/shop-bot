@@ -2,6 +2,7 @@ import asyncio
 import logging
 import aiosqlite
 import os
+import aiohttp
 from datetime import datetime, timedelta
 
 from aiogram import Bot, Dispatcher, F, Router
@@ -16,6 +17,7 @@ from aiogram.client.default import DefaultBotProperties
 # ================== НАСТРОЙКИ ==================
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_IDS = [375707434]
+SHEETS_URL = "https://script.google.com/macros/s/AKfycbyFQLGaJuXfVL0aH8E6kueYmqQCLftLKQroZIIsok490SODo23-IA7xv3NWyfT5jWp9tA/exec"
 
 CASHIERS = [
     "Ліля",
@@ -70,6 +72,12 @@ async def save_report(data: dict, user_id: int, username: str):
             user_id, username, datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         ))
         await db.commit()
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            await session.post(SHEETS_URL, json=data, timeout=aiohttp.ClientTimeout(total=10))
+    except Exception as e:
+        logging.error(f"Не вдалося записати в Google Таблицю: {e}")
 
 async def delete_last_report(user_id: int):
     async with aiosqlite.connect(DB_NAME) as db:
