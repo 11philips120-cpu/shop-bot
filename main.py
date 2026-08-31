@@ -17,8 +17,7 @@ from aiogram.client.default import DefaultBotProperties
 # ================== НАСТРОЙКИ ==================
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_IDS = [375707434]
-SHEETS_URL = "https://script.google.com/macros/s/AKfycbyFQLGaJuXfVL0aH8E6kueYmqQCLftLKQroZIIsok490SODo23-IA7xv3NWyfT5jWp9tA/exec"
-
+SHEETS_URL = "https://script.google.com/macros/s/AKfycbxbxQf3KzySaMp94IPLtuToXspYmOFo5UZQKFYr2qaewZZlcdoe7gllqbohnb_Fx2iOtQ/exec"
 CASHIERS = [
     "Ліля",
     "Зінаїда",
