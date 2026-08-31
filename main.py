@@ -85,7 +85,12 @@ async def delete_last_report(user_id: int):
             (user_id,)
         )
         await db.commit()
-
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            await session.post(SHEETS_URL, json={"action": "delete_last"}, timeout=aiohttp.ClientTimeout(total=10))
+    except Exception as e:
+        logging.error(f"Не вдалося видалити рядок в Google Таблиці: {e}")
 async def get_reports_by_date(date_str: str):
     async with aiosqlite.connect(DB_NAME) as db:
         db.row_factory = aiosqlite.Row
@@ -271,10 +276,11 @@ async def process_confirm_yes(message: Message, state: FSMContext, bot: Bot):
     data = await state.get_data()
     await save_report(data, message.from_user.id, message.from_user.username or "")
     
-    prihod = data["total"]
-    rashod = data["supplier"] + data["igor"]
-    raznica = prihod - rashod
-    raznica_text = f"+{raznica:.0f}" if raznica >= 0 else f"{raznica:.0f}"
+  prihod = data["total"]
+rashod = data["supplier"] + data["igor"]
+raznica = prihod - rashod
+raznica_text = f"+{raznica:.0f}" if raznica >= 0 else f"{raznica:.0f}"
+ostatok = data["yesterday_cash"] + data["cash"] - data["supplier"]
     
     await message.answer(
         f"✅ Отчёт збережено!\nКасир: <b>{data['surname']}</b>\nОбщая: <b>{data['total']:.0f} грн</b>",
@@ -292,8 +298,9 @@ async def process_confirm_yes(message: Message, state: FSMContext, bot: Bot):
         f"Товар от поставщика: <b>{data['supplier']:.0f} грн</b>\n"
         f"Товар от Игоря: <b>{data['igor']:.0f} грн</b>\n"
         f"<b>Расход: {rashod:.0f} грн</b>\n\n"
-        f"<b>Разница за день: {raznica_text} грн</b>\n"
-        f"Вчерашние наличные: <b>{data['yesterday_cash']:.0f} грн</b>"
+      f"<b>Разница за день: {raznica_text} грн</b>\n"
+f"Вчерашние наличные: <b>{data['yesterday_cash']:.0f} грн</b>\n"
+f"<b>Остаток в кассе: {ostatok:.0f} грн</b>"
     )
     
     for admin_id in ADMIN_IDS:
