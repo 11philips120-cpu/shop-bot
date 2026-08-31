@@ -275,12 +275,11 @@ async def process_yesterday(message: Message, state: FSMContext):
 async def process_confirm_yes(message: Message, state: FSMContext, bot: Bot):
     data = await state.get_data()
     await save_report(data, message.from_user.id, message.from_user.username or "")
-    
-  prihod = data["total"]
-rashod = data["supplier"] + data["igor"]
-raznica = prihod - rashod
-raznica_text = f"+{raznica:.0f}" if raznica >= 0 else f"{raznica:.0f}"
-ostatok = data["yesterday_cash"] + data["cash"] - data["supplier"]
+    prihod = data["total"]
+    rashod = data["supplier"] + data["igor"]
+    raznica = prihod - rashod
+    raznica_text = f"+{raznica:.0f}" if raznica >= 0 else f"{raznica:.0f}"
+    ostatok = data["yesterday_cash"] + data["cash"] - data["supplier"]
     
     await message.answer(
         f"✅ Отчёт збережено!\nКасир: <b>{data['surname']}</b>\nОбщая: <b>{data['total']:.0f} грн</b>",
@@ -298,9 +297,9 @@ ostatok = data["yesterday_cash"] + data["cash"] - data["supplier"]
         f"Товар от поставщика: <b>{data['supplier']:.0f} грн</b>\n"
         f"Товар от Игоря: <b>{data['igor']:.0f} грн</b>\n"
         f"<b>Расход: {rashod:.0f} грн</b>\n\n"
-      f"<b>Разница за день: {raznica_text} грн</b>\n"
-f"Вчерашние наличные: <b>{data['yesterday_cash']:.0f} грн</b>\n"
-f"<b>Остаток в кассе: {ostatok:.0f} грн</b>"
+        f"<b>Разница за день: {raznica_text} грн</b>\n"
+        f"Вчерашние наличные: <b>{data['yesterday_cash']:.0f} грн</b>\n"
+        f"<b>Остаток в кассе: {ostatok:.0f} грн</b>"
     )
     
     for admin_id in ADMIN_IDS:
