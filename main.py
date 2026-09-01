@@ -251,7 +251,7 @@ async def process_yesterday(message: Message, state: FSMContext):
         
         data = await state.get_data()
         data["date"] = datetime.now().strftime("%d.%m")
-        data["total"] = data["cash"] + data["card"] + data["supplier"] + data["igor"]
+        data["total"] = data["cash"] + data["card"] - data["supplier"] - data["igor"]
         await state.update_data(data)
         
         text = (
@@ -275,11 +275,9 @@ async def process_yesterday(message: Message, state: FSMContext):
 async def process_confirm_yes(message: Message, state: FSMContext, bot: Bot):
     data = await state.get_data()
     await save_report(data, message.from_user.id, message.from_user.username or "")
-    prihod = data["total"]
-    rashod = data["supplier"] + data["igor"]
-   itogo = data["cash"] + data["card"] - data["supplier"] - data["igor"]
-   itogo_text = f"+{itogo:.0f}" if itogo >= 0 else f"{itogo:.0f}"
-    ostatok = data["yesterday_cash"] + data["cash"] - data["supplier"]
+   prihod = data["total"]
+   rashod = data["supplier"] + data["igor"]
+   ostatok = data["yesterday_cash"] + data["cash"] - data["supplier"]
     
     await message.answer(
         f"✅ Отчёт збережено!\nКасир: <b>{data['surname']}</b>\nОбщая: <b>{data['total']:.0f} грн</b>",
@@ -297,7 +295,6 @@ async def process_confirm_yes(message: Message, state: FSMContext, bot: Bot):
         f"Товар от поставщика: <b>{data['supplier']:.0f} грн</b>\n"
         f"Товар от Игоря: <b>{data['igor']:.0f} грн</b>\n"
         f"<b>Расход: {rashod:.0f} грн</b>\n\n"
-        f"<b>Итого: {itogo_text} грн</b>\n"
         f"Остаток на утро: <b>{data['yesterday_cash']:.0f} грн</b>\n"
         f"<b>Остаток в кассе: {ostatok:.0f} грн</b>"
     )
