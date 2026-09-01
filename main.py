@@ -30,6 +30,7 @@ DB_NAME = "shop_reports.db"
 logging.basicConfig(level=logging.INFO)
 router = Router()
 
+
 class ReportForm(StatesGroup):
     surname = State()
     cash = State()
@@ -39,6 +40,8 @@ class ReportForm(StatesGroup):
     yesterday_cash = State()
     confirm = State()
     confirm_cancel = State()
+
+
 async def init_db():
     async with aiosqlite.connect(DB_NAME) as db:
         await db.execute("""
@@ -59,6 +62,7 @@ async def init_db():
         """)
         await db.commit()
 
+
 async def save_report(data: dict, user_id: int, username: str):
     async with aiosqlite.connect(DB_NAME) as db:
         await db.execute("""
@@ -71,12 +75,13 @@ async def save_report(data: dict, user_id: int, username: str):
             user_id, username, datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         ))
         await db.commit()
-    
+
     try:
         async with aiohttp.ClientSession() as session:
             await session.post(SHEETS_URL, json=data, timeout=aiohttp.ClientTimeout(total=10))
     except Exception as e:
         logging.error(f"Не вдалося записати в Google Таблицю: {e}")
+
 
 async def delete_last_report(user_id: int):
     async with aiosqlite.connect(DB_NAME) as db:
@@ -85,17 +90,20 @@ async def delete_last_report(user_id: int):
             (user_id,)
         )
         await db.commit()
-    
+
     try:
         async with aiohttp.ClientSession() as session:
             await session.post(SHEETS_URL, json={"action": "delete_last"}, timeout=aiohttp.ClientTimeout(total=10))
     except Exception as e:
         logging.error(f"Не вдалося видалити рядок в Google Таблиці: {e}")
+
+
 async def get_reports_by_date(date_str: str):
     async with aiosqlite.connect(DB_NAME) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute("SELECT * FROM reports WHERE report_date = ? ORDER BY id DESC", (date_str,))
         return await cursor.fetchall()
+
 
 async def get_last_reports(limit: int = 50):
     async with aiosqlite.connect(DB_NAME) as db:
@@ -103,8 +111,10 @@ async def get_last_reports(limit: int = 50):
         cursor = await db.execute("SELECT * FROM reports ORDER BY id DESC LIMIT ?", (limit,))
         return await cursor.fetchall()
 
+
 def is_admin(user_id: int) -> bool:
     return user_id in ADMIN_IDS
+
 
 def main_kb():
     return ReplyKeyboardMarkup(
@@ -112,10 +122,12 @@ def main_kb():
         resize_keyboard=True
     )
 
+
 def cashiers_kb():
     buttons = [[KeyboardButton(text=name)] for name in CASHIERS]
     buttons.append([KeyboardButton(text="Скасувати")])
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True, one_time_keyboard=True)
+
 
 def confirm_kb():
     return ReplyKeyboardMarkup(
@@ -126,11 +138,13 @@ def confirm_kb():
         resize_keyboard=True, one_time_keyboard=True
     )
 
+
 def cancel_kb():
     return ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton(text="Скасувати")]],
         resize_keyboard=True
     )
+
 
 @router.message(Command("start"))
 async def cmd_start(message: Message, state: FSMContext):
@@ -140,6 +154,7 @@ async def cmd_start(message: Message, state: FSMContext):
         parse_mode=ParseMode.HTML,
         reply_markup=main_kb()
     )
+
 
 @router.message(Command("отчет"))
 @router.message(F.text == "Отчет")
@@ -151,6 +166,7 @@ async def start_report(message: Message, state: FSMContext):
         reply_markup=cashiers_kb()
     )
 
+
 @router.message(Command("исправить"))
 async def edit_last_report(message: Message, state: FSMContext):
     await delete_last_report(message.from_user.id)
@@ -161,6 +177,7 @@ async def edit_last_report(message: Message, state: FSMContext):
         reply_markup=cashiers_kb()
     )
 
+
 @router.message(F.text.in_({"Скасувати", "скасувати", "Отмена", "отмена"}))
 async def cancel_any(message: Message, state: FSMContext):
     current_state = await state.get_state()
@@ -170,10 +187,12 @@ async def cancel_any(message: Message, state: FSMContext):
     await state.set_state(ReportForm.confirm_cancel)
     await message.answer("Ви дійсно хочете скасувати звіт?", reply_markup=confirm_kb())
 
+
 @router.message(ReportForm.confirm_cancel, F.text.in_({"Так", "так", "Да", "да"}))
 async def confirm_cancel_yes(message: Message, state: FSMContext):
     await state.clear()
     await message.answer("Звіт скасовано.", reply_markup=main_kb())
+
 
 @router.message(ReportForm.confirm_cancel, F.text.in_({"Ні", "ні", "Нет", "нет"}))
 async def confirm_cancel_no(message: Message, state: FSMContext):
@@ -181,6 +200,8 @@ async def confirm_cancel_no(message: Message, state: FSMContext):
     previous_state = data.get("_previous_state")
     await state.set_state(previous_state)
     await message.answer("Добре, продовжуємо заповнення звіту.", reply_markup=cancel_kb())
+
+
 @router.message(ReportForm.surname)
 async def process_surname(message: Message, state: FSMContext):
     if message.text in ["Скасувати", "скасувати"]:
@@ -192,6 +213,7 @@ async def process_surname(message: Message, state: FSMContext):
         parse_mode=ParseMode.HTML,
         reply_markup=cancel_kb()
     )
+
 
 @router.message(ReportForm.cash)
 async def process_cash(message: Message, state: FSMContext):
@@ -205,6 +227,7 @@ async def process_cash(message: Message, state: FSMContext):
     except:
         await message.answer("Введите только число")
 
+
 @router.message(ReportForm.card)
 async def process_card(message: Message, state: FSMContext):
     if message.text in ["Скасувати", "скасувати"]:
@@ -216,6 +239,7 @@ async def process_card(message: Message, state: FSMContext):
         await message.answer("4. Введите <b>Товар от поставщика</b>:", parse_mode=ParseMode.HTML, reply_markup=cancel_kb())
     except:
         await message.answer("Введите только число")
+
 
 @router.message(ReportForm.supplier)
 async def process_supplier(message: Message, state: FSMContext):
@@ -229,6 +253,7 @@ async def process_supplier(message: Message, state: FSMContext):
     except:
         await message.answer("Введите только число")
 
+
 @router.message(ReportForm.igor)
 async def process_igor(message: Message, state: FSMContext):
     if message.text in ["Скасувати", "скасувати"]:
@@ -241,6 +266,7 @@ async def process_igor(message: Message, state: FSMContext):
     except:
         await message.answer("Введите только число")
 
+
 @router.message(ReportForm.yesterday_cash)
 async def process_yesterday(message: Message, state: FSMContext):
     if message.text in ["Скасувати", "скасувати"]:
@@ -248,19 +274,20 @@ async def process_yesterday(message: Message, state: FSMContext):
     try:
         value = float(message.text.replace(",", ".").replace(" ", ""))
         await state.update_data(yesterday_cash=value)
-        
+
         data = await state.get_data()
         data["date"] = datetime.now().strftime("%d.%m")
-        data["total"] = data["cash"] + data["card"] - data["supplier"] - data["igor"]
+        # Приход = нал + безнал
+        data["total"] = data["cash"] + data["card"]
         await state.update_data(data)
-        
+
         text = (
             f"Перевірте звіт:\n\n"
             f"<b>Касир:</b> {data['surname']}\n"
             f"<b>Дата:</b> {data['date']}\n\n"
             f"Наличные: <b>{data['cash']:.0f}</b>\n"
             f"Безналичные: <b>{data['card']:.0f}</b>\n"
-            f"Общая: <b>{data['total']:.0f}</b>\n\n"
+            f"Общая (Приход): <b>{data['total']:.0f}</b>\n\n"
             f"Товар от поставщика: <b>{data['supplier']:.0f}</b>\n"
             f"Товар от Игоря: <b>{data['igor']:.0f}</b>\n"
             f"Остаток на утро: <b>{data['yesterday_cash']:.0f}</b>\n\n"
@@ -271,20 +298,25 @@ async def process_yesterday(message: Message, state: FSMContext):
     except:
         await message.answer("Введите только число")
 
+
 @router.message(ReportForm.confirm, F.text.in_({"Так", "так", "Да", "да"}))
 async def process_confirm_yes(message: Message, state: FSMContext, bot: Bot):
     data = await state.get_data()
     await save_report(data, message.from_user.id, message.from_user.username or "")
-   prihod = data["total"]
-   rashod = data["supplier"] + data["igor"]
-   ostatok = data["yesterday_cash"] + data["cash"] - data["supplier"]
-    
+
+    prihod = data["total"]  # нал + безнал
+    rashod = data["supplier"] + data["igor"]
+    raznica = prihod - rashod
+    raznica_text = f"+{raznica:.0f}" if raznica >= 0 else f"{raznica:.0f}"
+    # Остаток в кассе = остаток на утро + наличные - товар от поставщика - товар от Игоря
+    ostatok = data["yesterday_cash"] + data["cash"] - data["supplier"] - data["igor"]
+
     await message.answer(
         f"✅ Отчёт збережено!\nКасир: <b>{data['surname']}</b>\nОбщая: <b>{data['total']:.0f} грн</b>",
         parse_mode=ParseMode.HTML,
         reply_markup=main_kb()
     )
-    
+
     admin_text = (
         f"📥 <b>Новий звіт</b>\n\n"
         f"<b>Касир:</b> {data['surname']}\n"
@@ -295,27 +327,31 @@ async def process_confirm_yes(message: Message, state: FSMContext, bot: Bot):
         f"Товар от поставщика: <b>{data['supplier']:.0f} грн</b>\n"
         f"Товар от Игоря: <b>{data['igor']:.0f} грн</b>\n"
         f"<b>Расход: {rashod:.0f} грн</b>\n\n"
+        f"<b>Разница за день: {raznica_text} грн</b>\n"
         f"Остаток на утро: <b>{data['yesterday_cash']:.0f} грн</b>\n"
         f"<b>Остаток в кассе: {ostatok:.0f} грн</b>"
     )
-    
+
     for admin_id in ADMIN_IDS:
         try:
             await bot.send_message(admin_id, admin_text, parse_mode=ParseMode.HTML)
         except Exception as e:
             logging.error(f"Не вдалося надіслати адміну {admin_id}: {e}")
-    
+
     await state.clear()
+
 
 @router.message(ReportForm.confirm, F.text.in_({"Ні", "ні", "Нет", "нет"}))
 async def process_confirm_no(message: Message, state: FSMContext):
     await state.clear()
     await message.answer("Звіт скасовано.", reply_markup=main_kb())
 
+
 @router.message(Command("cancel"))
 async def cancel_handler(message: Message, state: FSMContext):
     await state.clear()
     await message.answer("Отменено.", reply_markup=main_kb())
+
 
 @router.message(Command("сегодня"))
 async def cmd_today(message: Message):
@@ -330,6 +366,7 @@ async def cmd_today(message: Message):
         text += f"• <b>{r['surname']}</b> ({r['report_date']}) — {r['total']:.0f} грн\n"
     await message.answer(text, parse_mode=ParseMode.HTML)
 
+
 @router.message(Command("статистика"))
 async def cmd_stats(message: Message):
     if not is_admin(message.from_user.id):
@@ -340,6 +377,7 @@ async def cmd_stats(message: Message):
     total = sum(r['total'] for r in reports)
     await message.answer(f"📊 Всього звітів: {len(reports)}\nЗагальна виручка: <b>{total:.0f} грн</b>", parse_mode=ParseMode.HTML)
 
+
 async def main():
     if not BOT_TOKEN:
         raise RuntimeError("Секрет BOT_TOKEN не знайдено")
@@ -349,6 +387,7 @@ async def main():
     dp.include_router(router)
     print("Бот запущений!")
     await dp.start_polling(bot)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
