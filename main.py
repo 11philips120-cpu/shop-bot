@@ -118,7 +118,9 @@ def is_admin(user_id: int) -> bool:
 
 def main_kb():
     return ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text="Отчет")]],
+        keyboard=[
+            [KeyboardButton(text="Отчет"), KeyboardButton(text="Исправить")]
+        ],
         resize_keyboard=True
     )
 
@@ -150,7 +152,8 @@ def cancel_kb():
 async def cmd_start(message: Message, state: FSMContext):
     await state.clear()
     await message.answer(
-        "Вітаю! Натисніть кнопку <b>Отчет</b>, щоб здати звіт.",
+        "Вітаю! Натисніть кнопку <b>Отчет</b>, щоб здати звіт.\n"
+        "Якщо помилилися — натисніть <b>Исправить</b>.",
         parse_mode=ParseMode.HTML,
         reply_markup=main_kb()
     )
@@ -168,12 +171,13 @@ async def start_report(message: Message, state: FSMContext):
 
 
 @router.message(Command("исправить"))
+@router.message(F.text.in_({"Исправить", "Исправить отчет", "Виправити", "Удалить отчет"}))
 async def edit_last_report(message: Message, state: FSMContext):
     await delete_last_report(message.from_user.id)
     await state.clear()
     await state.set_state(ReportForm.surname)
     await message.answer(
-        "Останній звіт видалено.\nВиберіть себе зі списку:",
+        "Останній звіт видалено.\nВиберіть себе зі списку і здайте звіт заново:",
         reply_markup=cashiers_kb()
     )
 
