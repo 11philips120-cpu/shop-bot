@@ -310,11 +310,10 @@ async def process_cash_start(message: Message, state: FSMContext):
         data["date"] = datetime.now().strftime("%d.%m")
 
         data["total_in"] = data["cash_in"] + data["card_in"]
-        # Расход всього = тільки Товар от поставщика (без Ігоря)
-        data["total_out"] = data["cash_out"]
+        data["total_out"] = data["cash_out"]  # тільки Товар от поставщика
         data["cash_end"] = data["cash_start"] + data["cash_in"] - data["cash_out"]
         data["card_end"] = data["card_in"] - data["card_out"]
-        data["total_end"] = data["cash_end"] + data["card_end"]
+        data["total_end"] = data["cash_end"]  # головний остаток = кінцеві нал
         data["change"] = data["total_in"] - data["total_out"]
         await state.update_data(data)
 
@@ -332,8 +331,7 @@ async def process_cash_start(message: Message, state: FSMContext):
             f"🌅 Остаток нал на утро: <b>{data['cash_start']:.0f}</b>\n\n"
             f"💰 <b>На кінець дня</b>\n"
             f"Нал: <b>{data['cash_end']:.0f}</b>\n"
-            f"Безнал (за день): <b>{data['card_end']:.0f}</b>\n"
-            f"Загалом: <b>{data['total_end']:.0f}</b>\n\n"
+            f"Безнал (за день): <b>{data['card_end']:.0f}</b>\n\n"
             f"Всё верно?"
         )
         await state.set_state(ReportForm.confirm)
@@ -352,7 +350,7 @@ async def process_confirm_yes(message: Message, state: FSMContext, bot: Bot):
     await message.answer(
         f"✅ Отчёт збережено!\n"
         f"Касир: <b>{data['surname']}</b>\n"
-        f"Загальний остаток: <b>{data['total_end']:.0f} грн</b>",
+        f"Остаток нал: <b>{data['cash_end']:.0f} грн</b>",
         parse_mode=ParseMode.HTML,
         reply_markup=main_kb()
     )
@@ -372,8 +370,7 @@ async def process_confirm_yes(message: Message, state: FSMContext, bot: Bot):
         f"🌅 Остаток нал на утро: <b>{data['cash_start']:.0f} грн</b>\n\n"
         f"💰 <b>На кінець дня</b>\n"
         f"Нал: <b>{data['cash_end']:.0f} грн</b>\n"
-        f"Безнал (за день): <b>{data['card_end']:.0f} грн</b>\n"
-        f"<b>Загальний остаток: {data['total_end']:.0f} грн</b>"
+        f"Безнал (за день): <b>{data['card_end']:.0f} грн</b>"
     )
 
     for admin_id in ADMIN_IDS:
@@ -407,8 +404,8 @@ async def cmd_today(message: Message):
         return await message.answer("Немає звітів")
     text = f"📅 Звіти:\n\n"
     for r in reports:
-        total = r["total_end"] if "total_end" in r.keys() else r["total_in"]
-        text += f"• <b>{r['surname']}</b> ({r['report_date']}) — {total:.0f} грн\n"
+        total = r["cash_end"] if "cash_end" in r.keys() else r["total_in"]
+        text += f"• <b>{r['surname']}</b> ({r['report_date']}) — нал {total:.0f} грн\n"
     await message.answer(text, parse_mode=ParseMode.HTML)
 
 
