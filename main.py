@@ -32,11 +32,11 @@ router = Router()
 
 class ReportForm(StatesGroup):
     surname = State()
-    cash_in = State()          # Приход наличных
-    card_in = State()          # Приход безнал
+    cash_in = State()
+    card_in = State()
     cash_out = State()         # Товар от поставщика
-    card_out = State()         # Расход безнал
-    cash_start = State()       # Остаток нал на утро
+    card_out = State()         # Товар от Игоря
+    cash_start = State()
     confirm = State()
     confirm_cancel = State()
 
@@ -273,7 +273,7 @@ async def process_cash_out(message: Message, state: FSMContext):
         await state.update_data(cash_out=value)
         await state.set_state(ReportForm.card_out)
         await message.answer(
-            "4. <b>Расход безнал</b> (оплата з рахунку / карти):",
+            "4. <b>Товар от Игоря</b>:",
             parse_mode=ParseMode.HTML,
             reply_markup=cancel_kb()
         )
@@ -309,7 +309,6 @@ async def process_cash_start(message: Message, state: FSMContext):
         data = await state.get_data()
         data["date"] = datetime.now().strftime("%d.%m")
 
-        # ===== АЛГОРИТМ =====
         data["total_in"] = data["cash_in"] + data["card_in"]
         data["total_out"] = data["cash_out"] + data["card_out"]
         data["cash_end"] = data["cash_start"] + data["cash_in"] - data["cash_out"]
@@ -328,7 +327,7 @@ async def process_cash_start(message: Message, state: FSMContext):
             f"Всього: <b>{data['total_in']:.0f}</b>\n\n"
             f"📤 <b>Расход</b>\n"
             f"Товар от поставщика: <b>{data['cash_out']:.0f}</b>\n"
-            f"Расход безнал: <b>{data['card_out']:.0f}</b>\n"
+            f"Товар от Игоря: <b>{data['card_out']:.0f}</b>\n"
             f"Всього: <b>{data['total_out']:.0f}</b>\n\n"
             f"🌅 Остаток нал на утро: <b>{data['cash_start']:.0f}</b>\n\n"
             f"💰 <b>На кінець дня</b>\n"
@@ -368,7 +367,7 @@ async def process_confirm_yes(message: Message, state: FSMContext, bot: Bot):
         f"Всього приход: <b>{data['total_in']:.0f} грн</b>\n\n"
         f"📤 <b>Расход</b>\n"
         f"Товар от поставщика: <b>{data['cash_out']:.0f} грн</b>\n"
-        f"Расход безнал: <b>{data['card_out']:.0f} грн</b>\n"
+        f"Товар от Игоря: <b>{data['card_out']:.0f} грн</b>\n"
         f"Всього расход: <b>{data['total_out']:.0f} грн</b>\n\n"
         f"📈 Зміна за день: <b>{change_text} грн</b>\n\n"
         f"🌅 Остаток нал на утро: <b>{data['cash_start']:.0f} грн</b>\n\n"
