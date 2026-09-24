@@ -24,6 +24,7 @@ CASHIERS = [
     "Галина"
 ]
 DB_NAME = "shop_reports.db"
+# Restart: 2026-09-24
 # ===============================================
 
 logging.basicConfig(level=logging.INFO)
