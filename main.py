@@ -34,7 +34,7 @@ class ReportForm(StatesGroup):
     surname = State()
     cash_in = State()          # Приход наличных
     card_in = State()          # Приход безнал
-    cash_out = State()         # Расход нал
+    cash_out = State()         # Товар от поставщика
     card_out = State()         # Расход безнал
     cash_start = State()       # Остаток нал на утро
     confirm = State()
@@ -256,7 +256,7 @@ async def process_card_in(message: Message, state: FSMContext):
         await state.update_data(card_in=value)
         await state.set_state(ReportForm.cash_out)
         await message.answer(
-            "3. <b>Расход нал</b> (оплата з каси: товар, Ігор тощо):",
+            "3. <b>Товар от поставщика</b>:",
             parse_mode=ParseMode.HTML,
             reply_markup=cancel_kb()
         )
@@ -313,7 +313,6 @@ async def process_cash_start(message: Message, state: FSMContext):
         data["total_in"] = data["cash_in"] + data["card_in"]
         data["total_out"] = data["cash_out"] + data["card_out"]
         data["cash_end"] = data["cash_start"] + data["cash_in"] - data["cash_out"]
-        # Безнал без перехідного залишку: тільки рух за день
         data["card_end"] = data["card_in"] - data["card_out"]
         data["total_end"] = data["cash_end"] + data["card_end"]
         data["change"] = data["total_in"] - data["total_out"]
@@ -328,8 +327,8 @@ async def process_cash_start(message: Message, state: FSMContext):
             f"Безнал: <b>{data['card_in']:.0f}</b>\n"
             f"Всього: <b>{data['total_in']:.0f}</b>\n\n"
             f"📤 <b>Расход</b>\n"
-            f"Нал: <b>{data['cash_out']:.0f}</b>\n"
-            f"Безнал: <b>{data['card_out']:.0f}</b>\n"
+            f"Товар от поставщика: <b>{data['cash_out']:.0f}</b>\n"
+            f"Расход безнал: <b>{data['card_out']:.0f}</b>\n"
             f"Всього: <b>{data['total_out']:.0f}</b>\n\n"
             f"🌅 Остаток нал на утро: <b>{data['cash_start']:.0f}</b>\n\n"
             f"💰 <b>На кінець дня</b>\n"
@@ -368,8 +367,8 @@ async def process_confirm_yes(message: Message, state: FSMContext, bot: Bot):
         f"Безнал: <b>{data['card_in']:.0f} грн</b>\n"
         f"Всього приход: <b>{data['total_in']:.0f} грн</b>\n\n"
         f"📤 <b>Расход</b>\n"
-        f"Нал: <b>{data['cash_out']:.0f} грн</b>\n"
-        f"Безнал: <b>{data['card_out']:.0f} грн</b>\n"
+        f"Товар от поставщика: <b>{data['cash_out']:.0f} грн</b>\n"
+        f"Расход безнал: <b>{data['card_out']:.0f} грн</b>\n"
         f"Всього расход: <b>{data['total_out']:.0f} грн</b>\n\n"
         f"📈 Зміна за день: <b>{change_text} грн</b>\n\n"
         f"🌅 Остаток нал на утро: <b>{data['cash_start']:.0f} грн</b>\n\n"
