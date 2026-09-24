@@ -310,7 +310,8 @@ async def process_cash_start(message: Message, state: FSMContext):
         data["date"] = datetime.now().strftime("%d.%m")
 
         data["total_in"] = data["cash_in"] + data["card_in"]
-        data["total_out"] = data["cash_out"] + data["card_out"]
+        # Расход всього = тільки Товар от поставщика (без Ігоря)
+        data["total_out"] = data["cash_out"]
         data["cash_end"] = data["cash_start"] + data["cash_in"] - data["cash_out"]
         data["card_end"] = data["card_in"] - data["card_out"]
         data["total_end"] = data["cash_end"] + data["card_end"]
@@ -327,8 +328,7 @@ async def process_cash_start(message: Message, state: FSMContext):
             f"Всього: <b>{data['total_in']:.0f}</b>\n\n"
             f"📤 <b>Расход</b>\n"
             f"Товар от поставщика: <b>{data['cash_out']:.0f}</b>\n"
-            f"Товар от Игоря: <b>{data['card_out']:.0f}</b>\n"
-            f"Всього: <b>{data['total_out']:.0f}</b>\n\n"
+            f"Товар от Игоря: <b>{data['card_out']:.0f}</b>\n\n"
             f"🌅 Остаток нал на утро: <b>{data['cash_start']:.0f}</b>\n\n"
             f"💰 <b>На кінець дня</b>\n"
             f"Нал: <b>{data['cash_end']:.0f}</b>\n"
@@ -367,8 +367,7 @@ async def process_confirm_yes(message: Message, state: FSMContext, bot: Bot):
         f"Всього приход: <b>{data['total_in']:.0f} грн</b>\n\n"
         f"📤 <b>Расход</b>\n"
         f"Товар от поставщика: <b>{data['cash_out']:.0f} грн</b>\n"
-        f"Товар от Игоря: <b>{data['card_out']:.0f} грн</b>\n"
-        f"Всього расход: <b>{data['total_out']:.0f} грн</b>\n\n"
+        f"Товар от Игоря: <b>{data['card_out']:.0f} грн</b>\n\n"
         f"📈 Зміна за день: <b>{change_text} грн</b>\n\n"
         f"🌅 Остаток нал на утро: <b>{data['cash_start']:.0f} грн</b>\n\n"
         f"💰 <b>На кінець дня</b>\n"
