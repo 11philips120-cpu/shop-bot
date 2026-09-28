@@ -24,7 +24,6 @@ CASHIERS = [
     "Галина"
 ]
 DB_NAME = "shop_reports.db"
-# Restart: 2026-09-24
 # ===============================================
 
 logging.basicConfig(level=logging.INFO)
@@ -89,9 +88,25 @@ async def save_report(data: dict, user_id: int, username: str):
         ))
         await db.commit()
 
+    # Для Google Таблиці — старі назви полів (як очікує Apps Script)
+    sheets_data = {
+        "surname": data["surname"],
+        "date": data["date"],
+        "cash": data["cash_in"],
+        "card": data["card_in"],
+        "supplier": data["cash_out"],
+        "igor": data["card_out"],
+        "total": data["total_in"],
+        "yesterday_cash": data["cash_start"],
+        # додаткові поля (якщо скрипт їх підтримує)
+        "cash_end": data["cash_end"],
+        "card_end": data["card_end"],
+        "change": data["change"],
+    }
+
     try:
         async with aiohttp.ClientSession() as session:
-            await session.post(SHEETS_URL, json=data, timeout=aiohttp.ClientTimeout(total=10))
+            await session.post(SHEETS_URL, json=sheets_data, timeout=aiohttp.ClientTimeout(total=10))
     except Exception as e:
         logging.error(f"Не вдалося записати в Google Таблицю: {e}")
 
@@ -311,10 +326,10 @@ async def process_cash_start(message: Message, state: FSMContext):
         data["date"] = datetime.now().strftime("%d.%m")
 
         data["total_in"] = data["cash_in"] + data["card_in"]
-        data["total_out"] = data["cash_out"]  # тільки Товар от поставщика
+        data["total_out"] = data["cash_out"]
         data["cash_end"] = data["cash_start"] + data["cash_in"] - data["cash_out"]
         data["card_end"] = data["card_in"] - data["card_out"]
-        data["total_end"] = data["cash_end"]  # головний остаток = кінцеві нал
+        data["total_end"] = data["cash_end"]
         data["change"] = data["total_in"] - data["total_out"]
         await state.update_data(data)
 
